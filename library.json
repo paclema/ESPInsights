@@ -1,0 +1,21 @@
+{
+  "name":"ESPInsights",
+  "version": "0.0.0",
+  "description":"A C++ library that encapsulates the ESP-Insights API",
+  "keywords":"ESP-Insights, insights, esp32, Arduino",
+  "authors": [
+    {
+      "name": "Pablo Clemente",
+      "maintainer": true,
+      "url":   "https://github.com/paclema"
+    }
+  ],
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/paclema/ESPInsights"
+  },
+  "frameworks": "arduino",
+  "platforms": "*",
+  "examples": "examples/*/*/*.ino"
+}
