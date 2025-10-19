@@ -34,6 +34,15 @@ env.AddCustomTarget(
     description="Fuses Summary"
 )
 env.AddCustomTarget(
+    name="fuses-summary-json",
+    dependencies=None,
+    actions=[
+        "python.exe c:/Users/pacle/.platformio/packages/tool-esptoolpy/espefuse.py --port COM5 summary --format json"
+    ],
+    title="Fuses Summary JSON",
+    description="Fuses Summary JSON"
+)
+env.AddCustomTarget(
     name="elf-hash",
     dependencies=None,
     actions=[

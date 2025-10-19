@@ -183,11 +183,11 @@ def SaveProject(source, target, env):
     global fw_out_folder
 
     elf_hash = hash_image(join(env.subst("$BUILD_DIR"), project_name + ".bin"))
-    fw_out_name =  project_name + "-v" + appver + "-" + elf_hash
+    fw_out_name =  project_name + "-" + appver + "-" + elf_hash
     fw_out_folder_base = join(env.subst("$PROJECT_DIR"), ".pio", "firmware", env.subst("$PIOENV"))
     fw_out_folder = join(fw_out_folder_base, fw_out_name)
     # date = env.GetProjectOption("custom_build_date", None)
-    print("Generating firmware package: \x1b[33;92m%s.zip\x1b[33;0m " % (fw_out_name))  
+    print("Generating firmware package: \x1b[33;92m%s.zip\x1b[33;0m " % (fw_out_name))
 
     create_build_folder()
 
@@ -212,11 +212,20 @@ def SaveProject(source, target, env):
 
 def CleanPackages(source, target, env):
     fw_out_folder_base = join(env.subst("$PROJECT_DIR"), ".pio", "firmware", env.subst("$PIOENV"))
-    shutil.rmtree(fw_out_folder_base)
+    if os.path.exists(fw_out_folder_base):
+        shutil.rmtree(fw_out_folder_base)
+        print("Removed Firmware packages for: \x1b[33;92m%s\x1b[33;0m " % (env.subst("$PIOENV")))
+    else:
+        print("No firmware packages to remove")
 
 def CleanAllPackages(source, target, env):
     fw_out_folder_base = join(env.subst("$PROJECT_DIR"), ".pio", "firmware")
-    shutil.rmtree(fw_out_folder_base)
+    if os.path.exists(fw_out_folder_base):
+        targets = [f.name for f in os.scandir(fw_out_folder_base) if f.is_dir()]
+        shutil.rmtree(fw_out_folder_base)
+        print("Removed Firmware packages for:\x1b[33;92m", targets, "\x1b[33;0m")
+    else:
+        print("No firmware packages to remove")
 
 def pack_firmwware(env):
 
@@ -234,24 +243,20 @@ def pack_firmwware(env):
     env.Depends(target="upload", dependency=pack_fw_action)
     env.Default(pack_fw_action)
 
-    pack_fw_action = env.AddCustomTarget(
-        "pack-fw-clean",
-        # ['patchappinfos', 'elf-hash'],
-        'patchappinfos',
-        CleanPackages,
+    env.AddCustomTarget(
+        name="pack-fw-clean",
+        dependencies=None,
+        actions=CleanPackages,
         title="Pack firmware Clean",
-        description="Pack firmware Clean",
-        always_build=False
+        description="Pack firmware Clean"
     )
 
-    pack_fw_action = env.AddCustomTarget(
-        "pack-fw-clean-all",
-        # ['patchappinfos', 'elf-hash'],
-        'patchappinfos',
-        CleanAllPackages,
+    env.AddCustomTarget(
+        name="pack-fw-clean-all",
+        dependencies=None,
+        actions=CleanAllPackages,
         title="Pack firmware Clean All",
-        description="Pack firmware Clean All",
-        always_build=False
+        description="Pack firmware Clean All"
     )
 
 
