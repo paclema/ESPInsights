@@ -10,3 +10,4 @@ HEAD
 * Add main custom scripts for firmware packaging
 * Include custom scripts for firmware packaging cleanup
 * Add ESPInsights class source files
+* Add esp-insights basic example
