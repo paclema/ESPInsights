@@ -9,7 +9,7 @@ Import("env")
 esptool_dir = env.PioPlatform().get_package_dir("tool-esptoolpy")
 arduino_dir = env.PioPlatform().get_package_dir("framework-arduinoespressif32")
 espefuse = os.path.join(esptool_dir, "espefuse.py")
-esptool = os.path.join(arduino_dir, "tools", "esptool.py")
+esptool = os.path.join(esptool_dir, "esptool.py")
 port = env.subst("$UPLOAD_PORT") or "COM5"  # fallback if not defined
 python_cmd = "python3" if system() != "Windows" else "python.exe"
 
@@ -84,6 +84,7 @@ env.AddCustomTarget(
     title="ELF hash",
     description="ELF hash"
 )
+
 import progname
 from os.path import join
 appver, appver_src = progname.get_program_ver(env)
@@ -91,6 +92,7 @@ project_name, project_name_src = progname.get_program_name(env)
 fw_out_name =  project_name + "-v" + appver
 new_bin = join(env.subst("$BUILD_DIR"), fw_out_name, project_name + ".bin")
 old_bin = join(env.subst("$BUILD_DIR"), project_name + ".bin.old")
+
 env.AddCustomTarget(
     name="elf-new-hash",
     dependencies=None,
