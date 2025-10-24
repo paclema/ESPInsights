@@ -5,7 +5,13 @@ from platform import system
 Import("env")
 #  More info: https://docs.platformio.org/en/latest/scripting/custom_targets.html
 
-
+# Get platform-specific paths and commands
+esptool_dir = env.PioPlatform().get_package_dir("tool-esptoolpy")
+arduino_dir = env.PioPlatform().get_package_dir("framework-arduinoespressif32")
+espefuse = os.path.join(esptool_dir, "espefuse.py")
+esptool = os.path.join(arduino_dir, "tools", "esptool.py")
+port = env.subst("$UPLOAD_PORT") or "COM5"  # fallback if not defined
+python_cmd = "python3" if system() != "Windows" else "python.exe"
 
 env.AddCustomTarget(
     name="envdump",
@@ -25,6 +31,7 @@ env.AddCustomTarget(
     title="Prune System",
     description="Prune System"
 )
+
 env.AddCustomTarget(
     name="fuses-summary",
     dependencies=None,
@@ -33,16 +40,11 @@ env.AddCustomTarget(
         "pip3 install ecdsa",
         "pip3 install bitstring",
         "pip3 install reedsolo",
-        "python.exe c:/Users/pacle/.platformio/packages/tool-esptoolpy/espefuse.py --port COM5 summary"
+        f"{python_cmd} {espefuse} --port {port} summary"
     ],
     title="Fuses Summary",
     description="Fuses Summary"
 )
-
-esptool_dir = env.PioPlatform().get_package_dir("tool-esptoolpy")
-espefuse = os.path.join(esptool_dir, "espefuse.py")
-port = env.subst("$UPLOAD_PORT") or "COM5"  # fallback if not defined
-python_cmd = "python3" if system() != "Windows" else "python.exe"
 def run_fuse_summary(target, source, env):
     """Executes generic espefuse.py summary"""
     cmd = [
@@ -68,7 +70,7 @@ env.AddCustomTarget(
     name="fuses-summary-json",
     dependencies=None,
     actions=[
-        "python.exe c:/Users/pacle/.platformio/packages/tool-esptoolpy/espefuse.py --port COM5 summary --format json"
+        f"{python_cmd} {espefuse} --port {port} summary --format json"
     ],
     title="Fuses Summary JSON",
     description="Fuses Summary JSON"
@@ -77,7 +79,7 @@ env.AddCustomTarget(
     name="elf-hash",
     dependencies=None,
     actions=[
-        "python.exe c:/Users/pacle/.platformio/packages/framework-arduinoespressif32/tools/esptool.py --chip esp32 image_info $BUILD_DIR/${PROGNAME}.bin"
+        f"{python_cmd} {esptool} --chip esp32 image_info $BUILD_DIR/${{PROGNAME}}.bin"
     ],
     title="ELF hash",
     description="ELF hash"
@@ -93,7 +95,7 @@ env.AddCustomTarget(
     name="elf-new-hash",
     dependencies=None,
     actions=[
-        f"python.exe c:/Users/pacle/.platformio/packages/framework-arduinoespressif32/tools/esptool.py --chip esp32 image_info {new_bin}"
+        f"{python_cmd} {esptool} --chip esp32 image_info {new_bin}"
     ],
     title="ELF new hash",
     description="ELF new hash"
@@ -102,7 +104,7 @@ env.AddCustomTarget(
     name="elf-old-hash",
     dependencies=None,
     actions=[
-        f"python.exe c:/Users/pacle/.platformio/packages/framework-arduinoespressif32/tools/esptool.py --chip esp32 image_info {old_bin}"
+        f"{python_cmd} {esptool} --chip esp32 image_info {old_bin}"
     ],
     title="ELF old hash",
     description="ELF old hash"

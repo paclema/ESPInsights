@@ -12,3 +12,4 @@ HEAD
 * Add ESPInsights class source files
 * Add esp-insights basic example
 * Add support for running fuse summary with subprocess in custom PIO tasks
+* Refactor custom PIO tasks to use platform-specific paths instead hardcodede windows locations
