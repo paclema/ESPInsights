@@ -1,5 +1,10 @@
+import os
+import subprocess
+from platform import system
+
 Import("env")
 #  More info: https://docs.platformio.org/en/latest/scripting/custom_targets.html
+
 
 
 env.AddCustomTarget(
@@ -33,6 +38,32 @@ env.AddCustomTarget(
     title="Fuses Summary",
     description="Fuses Summary"
 )
+
+esptool_dir = env.PioPlatform().get_package_dir("tool-esptoolpy")
+espefuse = os.path.join(esptool_dir, "espefuse.py")
+port = env.subst("$UPLOAD_PORT") or "COM5"  # fallback if not defined
+python_cmd = "python3" if system() != "Windows" else "python.exe"
+def run_fuse_summary(target, source, env):
+    """Executes generic espefuse.py summary"""
+    cmd = [
+        python_cmd,
+        espefuse,
+        "--port", port,
+        "summary"
+    ]
+
+    print("\n[INFO] Executing:", " ".join(cmd))
+    result = subprocess.run(cmd)
+    if result.returncode != 0:
+        print("[ERROR] espefuse.py failed")
+env.AddCustomTarget(
+    name="fuses-summary-generic",
+    dependencies=None,
+    actions=[run_fuse_summary],
+    title="Fuses Summary generic",
+    description="Fuses Summary generic"
+)
+
 env.AddCustomTarget(
     name="fuses-summary-json",
     dependencies=None,

@@ -11,3 +11,4 @@ HEAD
 * Include custom scripts for firmware packaging cleanup
 * Add ESPInsights class source files
 * Add esp-insights basic example
+* Add support for running fuse summary with subprocess in custom PIO tasks
