@@ -2,21 +2,10 @@
 
 #include <WiFi.h>
 
-const char* ssid     = "wifiname";
-const char* password = "wifipass";
-
-#define ESP_INSIGHTS_AUTH_KEY "changeme"    // <- Replace with your ESP-Insights auth key from https://dashboard.insights.espressif.com/home/manage-auth-keys/
-#define METRICS_DUMP_INTERVAL           10 * 1000
-#define METRICS_DUMP_INTERVAL_TICKS     (METRICS_DUMP_INTERVAL / portTICK_RATE_MS)
-static const char *TAG_INSIGHTS = "INSIGHTS";
-
-unsigned long lastPublishedMetrics = millis();
-bool insightsEnabled = true;
-bool insightsLoop = true;
-
 #include "esp32-hal-log.h"
 #define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
 #include "esp_log.h"
+
 #include <esp_insights.h>
 #include "esp_diagnostics_system_metrics.h"
 #include <esp_diagnostics_metrics.h>
@@ -25,11 +14,36 @@ bool insightsLoop = true;
 
 #include <firmware_info.h>
 
+const char* ssid     = "wifiname";
+const char* password = "wifipass";
+
+#define ESP_INSIGHTS_AUTH_KEY "changeme"    // <- Replace with your ESP-Insights auth key from https://dashboard.insights.espressif.com/home/manage-auth-keys/
+#define METRICS_DUMP_INTERVAL           10 * 1000
+#define METRICS_DUMP_INTERVAL_TICKS     (METRICS_DUMP_INTERVAL / portTICK_RATE_MS)
+static const char *TAG_INSIGHTS = "INSIGHTS";
+
+unsigned long currentLoopMillis = 0;
+unsigned long previousMainLoopMillis = 0;
+
+unsigned long lastPublishedMetrics = millis();
+bool insightsEnabled = true;
+bool insightsLoop = true;
+
+
+uint32_t taskCounter = 0;
+uint32_t loopCounter = 0;
+
+
 void TaskEspInsights( void *pvParameters ){
     while (true) {
         esp_diag_heap_metrics_dump();
         esp_diag_wifi_metrics_dump();
-        log_d("ESP-Insights heap and wifi metrics updated from xTask");
+        ESP_LOGW(TAG_INSIGHTS, "ESP-Insights heap&wifi metrics updated from xTask. xTask counter: %" PRIu32, taskCounter);
+
+        esp_diag_metrics_add_uint("taskCounter", taskCounter);
+        esp_diag_variable_add_uint("taskCounterVariable", taskCounter);
+
+        taskCounter++;
         vTaskDelay(METRICS_DUMP_INTERVAL_TICKS*2);
     }
 }
@@ -51,18 +65,13 @@ void init_insights(void){
     esp_diag_wifi_metrics_dump();
 
     // Register a Metric:
-    esp_diag_metrics_register("ControlDeviceStatus", "CDstatus", "ControlDevice current status", "AccessCtrl", ESP_DIAG_DATA_TYPE_UINT);
-    // uint32_t statusNum = 12;
-    // esp_diag_metrics_add_uint("CDstatus", statusNum);
-
-    esp_diag_metrics_register("ControlDevice button count", "pushCount", "ControlDevice button push count", "AccessCtrl", ESP_DIAG_DATA_TYPE_UINT);
-    
+    esp_diag_metrics_register("TaskCounter", "taskCounter", "Task Counter", "TestMetrics", ESP_DIAG_DATA_TYPE_UINT);
 
     // Register a Variable:
-    esp_diag_variable_register("Wi-Fi", "lastEvent", "Last event", "Wi-Fi.Events", ESP_DIAG_DATA_TYPE_UINT);
-    esp_diag_variable_add_uint("lastEvent", 7);
+    esp_diag_variable_register("TestVariables", "taskCounterVariable", "Task Counter", "TestVariables.VariableGroup", ESP_DIAG_DATA_TYPE_UINT);
+    esp_diag_variable_add_uint("taskCounterVariable", taskCounter);
     
-    esp_diag_variable_register("AccessCtrl", "lockStatus", "Lock status", "AccessCtrl.ControlDevice", ESP_DIAG_DATA_TYPE_STR);
+    esp_diag_variable_register("TestVariables", "loopCounterSTR", "Loop Counter String", "TestVariables.VariableGroup", ESP_DIAG_DATA_TYPE_STR);
 
 
     xTaskCreatePinnedToCore(
@@ -78,10 +87,6 @@ void init_insights(void){
 
 
 
-static const char *insightsTAG = "esp_insights";
-
-unsigned long currentLoopMillis = 0;
-unsigned long previousMainLoopMillis = 0;
 
 void setup() {
 
@@ -91,7 +96,7 @@ void setup() {
     // esp_log_level_set("*", ESP_LOG_VERBOSE);
     esp_log_level_set("*", ESP_LOG_ERROR);
     esp_log_level_set("cpu_start", ESP_LOG_INFO);
-    esp_log_level_set(insightsTAG, ESP_LOG_VERBOSE);
+    esp_log_level_set(TAG_INSIGHTS, ESP_LOG_VERBOSE);
     // esp_log_level_set("esp_core_dump_elf", ESP_LOG_VERBOSE);
 
     show_flash_info();
@@ -116,17 +121,20 @@ void setup() {
     log_i("###  Looping time");
 }
 
-int count = 0;  // Variable for debugging purpose
 void loop() {
 
     currentLoopMillis = millis();
 
     if(insightsEnabled && insightsLoop && (currentLoopMillis-lastPublishedMetrics > METRICS_DUMP_INTERVAL)){
         lastPublishedMetrics = currentLoopMillis;
-        count++;
         esp_diag_heap_metrics_dump();
         esp_diag_wifi_metrics_dump();
-        log_d("ESP-Insights heap and wifi metrics updated from loop");
+        ESP_LOGW(TAG_INSIGHTS, "ESP-Insights heap & wifi metrics updated from loop. Loop counter: %" PRIu32, loopCounter);
+        
+        char loopCounterStr[50];
+        snprintf(loopCounterStr, sizeof(loopCounterStr), "Loop counter: %d", loopCounter);
+        esp_diag_variable_add_str("loopCounterSTR", loopCounterStr);
+        loopCounter++;
     }
 
     previousMainLoopMillis = currentLoopMillis;

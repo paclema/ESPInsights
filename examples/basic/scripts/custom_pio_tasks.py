@@ -1,0 +1,135 @@
+import os
+import subprocess
+from platform import system
+
+Import("env")
+#  More info: https://docs.platformio.org/en/latest/scripting/custom_targets.html
+
+# Get platform-specific paths and commands
+esptool_dir = env.PioPlatform().get_package_dir("tool-esptoolpy")
+arduino_dir = env.PioPlatform().get_package_dir("framework-arduinoespressif32")
+espefuse = os.path.join(esptool_dir, "espefuse.py")
+esptool = os.path.join(esptool_dir, "esptool.py")
+port = env.subst("$UPLOAD_PORT") or "COM5"  # fallback if not defined
+python_cmd = "python3" if system() != "Windows" else "python.exe"
+
+env.AddCustomTarget(
+    name="envdump",
+    dependencies=None,
+    actions=[
+        "pio run -t envdump"
+    ],
+    title="Show Build Options [envdump]",
+    description="Show Build Options "
+)
+env.AddCustomTarget(
+    name="prune",
+    dependencies=None,
+    actions=[
+        "pio system prune -f"
+    ],
+    title="Prune System",
+    description="Prune System"
+)
+
+env.AddCustomTarget(
+    name="fuses-summary",
+    dependencies=None,
+    actions=[
+        "pip3 install cryptography",
+        "pip3 install ecdsa",
+        "pip3 install bitstring",
+        "pip3 install reedsolo",
+        f"{python_cmd} {espefuse} --port {port} summary"
+    ],
+    title="Fuses Summary",
+    description="Fuses Summary"
+)
+def run_fuse_summary(target, source, env):
+    """Executes generic espefuse.py summary"""
+    cmd = [
+        python_cmd,
+        espefuse,
+        "--port", port,
+        "summary"
+    ]
+
+    print("\n[INFO] Executing:", " ".join(cmd))
+    result = subprocess.run(cmd)
+    if result.returncode != 0:
+        print("[ERROR] espefuse.py failed")
+env.AddCustomTarget(
+    name="fuses-summary-generic",
+    dependencies=None,
+    actions=[run_fuse_summary],
+    title="Fuses Summary generic",
+    description="Fuses Summary generic"
+)
+
+env.AddCustomTarget(
+    name="fuses-summary-json",
+    dependencies=None,
+    actions=[
+        f"{python_cmd} {espefuse} --port {port} summary --format json"
+    ],
+    title="Fuses Summary JSON",
+    description="Fuses Summary JSON"
+)
+env.AddCustomTarget(
+    name="elf-hash",
+    dependencies=None,
+    actions=[
+        f"{python_cmd} {esptool} --chip esp32 image_info $BUILD_DIR/${{PROGNAME}}.bin"
+    ],
+    title="ELF hash",
+    description="ELF hash"
+)
+
+import progname
+from os.path import join
+appver, appver_src = progname.get_program_ver(env)
+project_name, project_name_src = progname.get_program_name(env)
+fw_out_name =  project_name + "-v" + appver
+new_bin = join(env.subst("$BUILD_DIR"), fw_out_name, project_name + ".bin")
+old_bin = join(env.subst("$BUILD_DIR"), project_name + ".bin.old")
+
+env.AddCustomTarget(
+    name="elf-new-hash",
+    dependencies=None,
+    actions=[
+        f"{python_cmd} {esptool} --chip esp32 image_info {new_bin}"
+    ],
+    title="ELF new hash",
+    description="ELF new hash"
+)
+env.AddCustomTarget(
+    name="elf-old-hash",
+    dependencies=None,
+    actions=[
+        f"{python_cmd} {esptool} --chip esp32 image_info {old_bin}"
+    ],
+    title="ELF old hash",
+    description="ELF old hash"
+)
+env.AddCustomTarget(
+    name="docker-builder",
+    dependencies=None,
+    actions=[
+        "docker build --tag esp32-arduino-lib-builder --file ./scripts/esp32-arduino-lib-builder.dockerfile .",
+        "docker run -t -d --name esp32-arduino-lib-builder-container esp32-arduino-lib-builder"
+    ],
+    title="Setup lib-builder docker",
+    description="Setup esp32-arduino-lib-builder docker container"
+)
+env.AddCustomTarget(
+    name="docker-restart",
+    dependencies=None,
+    actions=[
+        "docker stop esp32-arduino-lib-builder-container",
+        "docker rm esp32-arduino-lib-builder-container",
+        "docker build --tag esp32-arduino-lib-builder --file ./scripts/esp32-arduino-lib-builder.dockerfile .",
+        "docker run -t -d --name esp32-arduino-lib-builder-container esp32-arduino-lib-builder"
+    ],
+    title="Restart lib-builder docker",
+    description="Restart esp32-arduino-lib-builder docker container"
+)

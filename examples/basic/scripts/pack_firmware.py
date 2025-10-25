@@ -57,25 +57,23 @@ def get_bootloader_image(variants_dir):
         variant_bootloader
         if isfile(variant_bootloader)
         else join(
-            FRAMEWORK_DIR,
-            "tools",
-            "sdk",
+            FRAMEWORK_LIBS_DIR,
             build_mcu,
             "bin",
             # "bootloader_${__get_board_boot_mode(__env__)}_${__get_board_f_flash(__env__)}.bin",
-            "bootloader_" + boot_mode + "_" + str(int(int(frequency) / 1000000)) + "m" + ".bin",
+            # "bootloader_" + boot_mode + "_" + str(int(int(frequency) / 1000000)) + "m" + ".bin",
+            "bootloader_" + boot_mode + "_" + str(int(int(frequency) / 1000000)) + "m" + ".elf",
         )
     )
 
 def get_bootloader_elf():
     boot_mode = board_config.get("build.flash_mode", "$BOARD_FLASH_MODE").lower()
     frequency = str(env.subst("$BOARD_F_FLASH")).replace("L", "")
-    return join(FRAMEWORK_DIR,
-                "tools",
-                "sdk",
+    return join(FRAMEWORK_LIBS_DIR,
                 build_mcu,
                 "bin",
                 # "bootloader_${__get_board_boot_mode(__env__)}_${__get_board_f_flash(__env__)}.bin",
+                # "bootloader_" + boot_mode + "_" + str(int(int(frequency) / 1000000)) + "m" + ".bin",
                 "bootloader_" + boot_mode + "_" + str(int(int(frequency) / 1000000)) + "m" + ".elf",
                 )
 
@@ -170,7 +168,8 @@ def copy_partition_table_csv(env):
     shutil.copy(source, target)
 
 def copy_sdkconfig(env):
-    source = join(env.subst("$PROJECT_CORE_DIR"), "packages", "framework-arduinoespressif32", "tools", "sdk", "esp32", "sdkconfig")
+    # source = join(env.subst("$PROJECT_CORE_DIR"), "packages", "framework-arduinoespressif32", "tools", "sdk", "esp32", "sdkconfig")
+    source = join( FRAMEWORK_LIBS_DIR, build_mcu, "sdkconfig")
     target = join(fw_out_folder, "sdkconfig")
     print("Copying sdkconfig from:", source)
     shutil.copy(source, target)
@@ -296,6 +295,7 @@ if __name__ == "SCons.Script":
     env = DefaultEnvironment()
     platform = env.PioPlatform()
     FRAMEWORK_DIR = platform.get_package_dir("framework-arduinoespressif32")
+    FRAMEWORK_LIBS_DIR = platform.get_package_dir("framework-arduinoespressif32-libs")
     board_config = env.BoardConfig()
     build_mcu = board_config.get("build.mcu", "").lower()
     partitions_name = board_config.get(
